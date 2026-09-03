@@ -1,0 +1,289 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+  ANALYST
+}
+
+enum Status {
+  HEALTHY
+  WARNING
+  CRITICAL
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum OutageStatus {
+  ACTIVE
+  DISPATCHED
+  RESTORING
+  RESOLVED
+}
+
+enum AnomalyStatus {
+  DETECTED
+  INVESTIGATING
+  CONFIRMED
+  RESOLVED
+  FALSE_POSITIVE
+}
+
+enum MaintenanceStatus {
+  OVERDUE
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(OPERATOR)
+  avatar       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Substation {
+  id             String    @id @default(uuid())
+  name           String
+  code           String    @unique
+  zone           String
+  latitude       Float
+  longitude      Float
+  capacityMva    Float
+  currentLoadMva Float
+  voltageRatingKv Float
+  status         Status    @default(HEALTHY)
+  healthScore    Float     @default(100)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  feeders        Feeder[]
+
+  @@map("substations")
+}
+
+model Feeder {
+  id             String      @id @default(uuid())
+  substationId   String
+  name           String
+  code           String      @unique
+  zone           String
+  capacityMw     Float
+  currentLoadMw  Float
+  voltageKv      Float
+  currentAmps    Float
+  powerFactor    Float
+  riskScore      Float       @default(0)
+  riskLevel      RiskLevel   @default(LOW)
+  status         Status      @default(HEALTHY)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  substation     Substation  @relation(fields: [substationId], references: [id], onDelete: Cascade)
+  transformers   Transformer[]
+  outages        Outage[]
+
+  @@map("feeders")
+}
+
+model Transformer {
+  id                   String        @id @default(uuid())
+  feederId             String
+  name                 String
+  code                 String        @unique
+  zone                 String
+  latitude             Float
+  longitude            Float
+  capacityKva          Float
+  currentLoadKva       Float
+  ageYears             Float
+  temperatureC         Float
+  voltageDeviationPct  Float
+  voltageKv            Float
+  currentAmps          Float
+  powerFactor          Float
+  oilLevelPct          Float
+  vibrationMmS         Float
+  failureCount         Int           @default(0)
+  daysSinceMaintenance Int           @default(0)
+  lastMaintenance      DateTime?
+  healthScore          Float         @default(100)
+  riskScore            Float         @default(0)
+  riskLevel            RiskLevel     @default(LOW)
+  status               Status        @default(HEALTHY)
+  aiRecommendation     String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  feeder               Feeder        @relation(fields: [feederId], references: [id], onDelete: Cascade)
+  maintenanceLogs      Maintenance[]
+
+  @@map("transformers")
+}
+
+model Consumer {
+  id             String        @id @default(uuid())
+  consumerNumber String        @unique
+  name           String
+  category       String
+  zone           String
+  connectedLoadKw Float
+  createdAt      DateTime      @default(now())
+
+  consumptions   Consumption[]
+  anomalies      AnomalyRecord[]
+
+  @@map("consumers")
+}
+
+model Consumption {
+  id          String    @id @default(uuid())
+  consumerId  String
+  timestamp   DateTime  @default(now())
+  energyKwh   Float
+  voltage     Float
+  current     Float
+  powerFactor Float
+
+  consumer    Consumer  @relation(fields: [consumerId], references: [id], onDelete: Cascade)
+
+  @@index([consumerId, timestamp])
+  @@map("consumption")
+}
+
+model Outage {
+  id                       String       @id @default(uuid())
+  code                     String       @unique
+  feederId                 String
+  startTime                DateTime     @default(now())
+  estimatedRestorationTime DateTime?
+  durationMinutes          Int          @default(0)
+  cause                    String
+  affectedConsumers        Int          @default(0)
+  affectedLoadMw           Float        @default(0)
+  priority                 RiskLevel    @default(MEDIUM)
+  status                   OutageStatus @default(ACTIVE)
+  crewsDispatched          Int          @default(1)
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  feeder                   Feeder       @relation(fields: [feederId], references: [id], onDelete: Cascade)
+
+  @@map("outages")
+}
+
+model Forecast {
+  id            String    @id @default(uuid())
+  timestamp     DateTime
+  horizon       String
+  zone          String
+  actualLoadMw  Float?
+  predictedLoadMw Float
+  lowerBoundMw  Float
+  upperBoundMw  Float
+  modelName     String
+  temperatureC  Float?
+  humidityPct   Float?
+  createdAt     DateTime  @default(now())
+
+  @@index([timestamp, horizon])
+  @@map("forecasts")
+}
+
+model AnomalyRecord {
+  id                     String        @id @default(uuid())
+  code                   String        @unique
+  consumerId             String
+  timestamp              DateTime      @default(now())
+  expectedConsumptionKwh Float
+  actualConsumptionKwh   Float
+  anomalyScore           Float
+  severity               RiskLevel     @default(MEDIUM)
+  type                   String
+  status                 AnomalyStatus @default(DETECTED)
+  notes                  String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  consumer               Consumer      @relation(fields: [consumerId], references: [id], onDelete: Cascade)
+
+  @@map("anomaly_records")
+}
+
+model Maintenance {
+  id                  String            @id @default(uuid())
+  assetId             String
+  maintenanceType     String
+  inspectionDate      DateTime
+  nextInspectionDue   DateTime?
+  estimatedCostUsd    Float             @default(0)
+  status              MaintenanceStatus @default(SCHEDULED)
+  technicianAssigned  String?
+  aiSuggestedAction   String?
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  transformer         Transformer       @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance")
+}
+
+model ModelRun {
+  id              String    @id @default(uuid())
+  modelName       String
+  taskType        String
+  mae             Float?
+  rmse            Float?
+  r2              Float?
+  mape            Float?
+  evaluationDate  DateTime  @default(now())
+
+  @@map("model_runs")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  title     String
+  message   String
+  severity  RiskLevel @default(LOW)
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        String    @id @default(uuid())
+  userId    String?
+  action    String
+  category  String
+  details   String
+  ipAddress String
+  timestamp DateTime  @default(now())
+
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}

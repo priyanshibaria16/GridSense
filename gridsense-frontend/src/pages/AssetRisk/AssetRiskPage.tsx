@@ -60,7 +60,7 @@ export const AssetRiskPage: React.FC = () => {
       {/* Top 4 Risk Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <GlassCard glow="red" className="p-4 space-y-1">
-          <div className="text-[10px] font-mono uppercase text-slate-400">Critical Risk (>80%)</div>
+          <div className="text-[10px] font-mono uppercase text-slate-400">Critical Risk (&gt;80%)</div>
           <div className="text-2xl font-extrabold font-mono text-rose-400">{critical.length} Units</div>
           <span className="text-[10px] text-rose-400 font-mono">Immediate Triage Needed</span>
         </GlassCard>

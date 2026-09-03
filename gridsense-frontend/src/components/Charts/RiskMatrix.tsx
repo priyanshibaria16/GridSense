@@ -85,8 +85,9 @@ export const RiskMatrix: React.FC<RiskMatrixProps> = ({ transformers }) => {
             />
             <Scatter
               data={data}
-              onClick={(node) => {
+              onClick={(node: any) => {
                 if (node && node.raw) openAssetDrawer(node.raw);
+                else if (node && node.payload && node.payload.raw) openAssetDrawer(node.payload.raw);
               }}
               cursor="pointer"
             >

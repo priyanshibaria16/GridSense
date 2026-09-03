@@ -1,157 +1,316 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
-import './index.css'
+import React, { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Sidebar } from './components/Layout/Sidebar';
+import { Header } from './components/Layout/Header';
+import { CommandPalette } from './components/Layout/CommandPalette';
+import { NotificationCenter } from './components/Layout/NotificationCenter';
+import { AssetDrawer } from './components/Maps/AssetDrawer';
 
-/*
-  Phase 1 App.tsx: lightweight Router + inline components (Sidebar, Header, Landing, Login, Dashboard)
-  This is a compact scaffold to get the UI structure in place for further development.
-*/
+import { LandingPage } from './pages/Landing/LandingPage';
+import { LoginPage } from './pages/Login/LoginPage';
+import { DashboardPage } from './pages/Dashboard/DashboardPage';
+import { LiveGridPage } from './pages/LiveGrid/LiveGridPage';
+import { SubstationsPage } from './pages/Substations/SubstationsPage';
+import { FeedersPage } from './pages/Feeders/FeedersPage';
+import { TransformersPage } from './pages/Transformers/TransformersPage';
+import { AssetDetailPage } from './pages/AssetDetail/AssetDetailPage';
+import { DemandForecastPage } from './pages/Forecast/DemandForecastPage';
+import { AssetRiskPage } from './pages/AssetRisk/AssetRiskPage';
+import { AnomaliesPage } from './pages/Anomalies/AnomaliesPage';
+import { MaintenancePage } from './pages/Maintenance/MaintenancePage';
+import { OutagesPage } from './pages/Outages/OutagesPage';
+import { SimulatorPage } from './pages/Simulator/SimulatorPage';
+import { CopilotPage } from './pages/Copilot/CopilotPage';
+import { EnergyAnalyticsPage } from './pages/Analytics/EnergyAnalyticsPage';
+import { SustainabilityPage } from './pages/Sustainability/SustainabilityPage';
+import { ReportsPage } from './pages/Reports/ReportsPage';
+import { AdminPage } from './pages/Admin/AdminPage';
+import { SettingsPage } from './pages/Settings/SettingsPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
-const Sidebar: React.FC = () => {
+import { useGridStore } from './store/gridStore';
+import './index.css';
+
+// Enterprise Main App Layout
+const AppLayout: React.FC<{ children: React.ReactNode; pageTitle?: string; pageSubtitle?: string }> = ({
+  children,
+  pageTitle,
+  pageSubtitle
+}) => {
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
   return (
-    <aside className="w-64 min-w-[250px] bg-[var(--bg-2)] h-screen p-5 flex flex-col" aria-label="Sidebar">
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[var(--card)] rounded flex items-center justify-center text-[var(--primary)]">⚡</div>
-          <div>
-            <div className="text-white font-semibold">GridSense AI</div>
-            <div className="text-xs text-[var(--muted)]">Power Intelligence</div>
-          </div>
-        </div>
+    <div className="flex min-h-screen bg-[#07111F] text-slate-100 selection:bg-cyan-500 selection:text-black">
+      {/* 250px Collapsible Sidebar */}
+      <Sidebar
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* 68px Header */}
+        <Header title={pageTitle} subtitle={pageSubtitle} />
+
+        {/* Dynamic Route Content */}
+        <main className="flex-1 overflow-x-hidden">{children}</main>
       </div>
 
-      <nav className="flex-1 space-y-2">
-        <NavItem to="/dashboard" label="Dashboard" />
-        <NavItem to="/live" label="Live Grid" />
-        <NavItem to="/substations" label="Substations" />
-        <NavItem to="/feeders" label="Feeders" />
-        <NavItem to="/forecast" label="Demand Forecast" />
-      </nav>
-
-      <div className="mt-auto text-[var(--muted)] text-xs">
-        GridSense AI uses public & synthetic datasets for demonstration purposes.
-      </div>
-    </aside>
-  )
-}
-
-const NavItem: React.FC<{ to: string; label: string }> = ({ to, label }) => {
-  return (
-    <Link to={to} className="block px-3 py-2 rounded-md text-white hover:bg-white/5">
-      {label}
-    </Link>
-  )
-}
-
-const Header: React.FC<{ title?: string }> = ({ title }) => {
-  return (
-    <header className="h-16 flex items-center justify-between px-6 bg-transparent border-b border-[var(--border)]">
-      <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold text-white">{title ?? 'Grid Operations Overview'}</h1>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <div className="text-sm text-[var(--muted)] flex items-center gap-2">
-          <span className="text-green-400">●</span>
-          <span>GRID OPERATIONAL</span>
-        </div>
-        <button className="p-2 rounded-md bg-[var(--card)] text-[var(--muted)]">🔔</button>
-        <button className="p-2 rounded-md bg-[var(--card)] text-[var(--muted)]">🌓</button>
-        <div className="w-8 h-8 rounded-full bg-[var(--card)] flex items-center justify-center text-white">A</div>
-      </div>
-    </header>
-  )
-}
-
-const Landing: React.FC = () => (
-  <main className="min-h-screen flex items-center justify-center px-6 py-12 bg-[var(--bg)]">
-    <section className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-      <div>
-        <h1 className="text-4xl md:text-5xl font-semibold text-white">See the Grid Before It Becomes a Problem.</h1>
-        <p className="mt-4 text-[var(--muted)]">AI-powered forecasting, asset intelligence and grid analytics for smarter energy operations.</p>
-        <div className="mt-6 flex gap-3">
-          <Link to="/dashboard" className="px-5 py-3 rounded-md bg-[var(--primary)] text-black font-semibold">Explore Platform</Link>
-          <a href="#architecture" className="px-5 py-3 rounded-md bg-[var(--card)] text-white">View Architecture</a>
-        </div>
-      </div>
-
-      <div>
-        <div className="bg-[var(--card)] rounded-lg p-4 shadow-sm">
-          <div className="h-64 flex items-center justify-center text-[var(--muted)]">Animated dashboard preview (placeholder)</div>
-        </div>
-      </div>
-    </section>
-  </main>
-)
-
-const Login: React.FC = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-6">
-      <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 bg-[var(--card)] rounded-lg overflow-hidden">
-        <div className="p-8 bg-gradient-to-b from-[#07111F] to-[var(--bg-2)] flex flex-col justify-center">
-          <div className="text-white text-2xl font-semibold">⚡ GridSense AI</div>
-          <div className="text-sm text-[var(--muted)] mt-2">Power Intelligence — Demo Login</div>
-        </div>
-        <div className="p-8">
-          <form className="space-y-4">
-            <div>
-              <label className="text-sm text-[var(--muted)]">Email</label>
-              <input className="mt-1 w-full px-3 py-2 rounded bg-[var(--bg)] border border-[var(--border)] text-white" />
-            </div>
-            <div>
-              <label className="text-sm text-[var(--muted)]">Password</label>
-              <input type="password" className="mt-1 w-full px-3 py-2 rounded bg-[var(--bg)] border border-[var(--border)] text-white" />
-            </div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm text-[var(--muted)]"><input type="checkbox" className="mr-2" />Remember me</label>
-              <a className="text-sm text-[var(--primary)]" href="#">Demo accounts</a>
-            </div>
-            <div className="flex gap-2">
-              <button className="flex-1 px-4 py-2 rounded bg-[var(--primary)] text-black font-semibold">Login</button>
-              <button className="px-4 py-2 rounded bg-[var(--card)] text-white">Demo</button>
-            </div>
-          </form>
-        </div>
-      </div>
+      {/* Global Modals, Drawers & Palette */}
+      <CommandPalette />
+      <NotificationCenter />
+      <AssetDrawer />
     </div>
-  )
-}
-
-const Dashboard: React.FC = () => {
-  return (
-    <div className="p-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <div className="bg-[var(--card)] rounded p-4 text-white">Main dashboard area (charts, map, KPIs will be added)</div>
-        </div>
-        <div>
-          <div className="bg-[var(--card)] rounded p-4 text-white">Needs Attention / AI Insights</div>
-        </div>
-      </div>
-    </div>
-  )
-}
+  );
+};
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
+        {/* Public Landing & Login */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Protected Operational Routes */}
         <Route
           path="/dashboard"
           element={
-            <div className="flex">
-              <Sidebar />
-              <div className="flex-1 min-h-screen flex flex-col">
-                <Header />
-                <Dashboard />
-              </div>
-            </div>
+            <AppLayout
+              pageTitle="Grid Operations Overview"
+              pageSubtitle="Real-time SCADA telemetry, demand forecast, and equipment health"
+            >
+              <DashboardPage />
+            </AppLayout>
           }
         />
-        <Route path="*" element={<div className="p-6 text-white">Not found — <Link to="/">Go home</Link></div>} />
+
+        <Route
+          path="/live"
+          element={
+            <AppLayout
+              pageTitle="Live Geospatial Grid"
+              pageSubtitle="Interactive dark GIS layer with substations, feeders, and transformers"
+            >
+              <LiveGridPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/substations"
+          element={
+            <AppLayout
+              pageTitle="Substations Directory"
+              pageSubtitle="Primary transmission and distribution step-down substations"
+            >
+              <SubstationsPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/feeders"
+          element={
+            <AppLayout
+              pageTitle="Feeders & Trunks"
+              pageSubtitle="11kV & 22kV feeder line loading ratios, current draw, and power factor"
+            >
+              <FeedersPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/transformers"
+          element={
+            <AppLayout
+              pageTitle="Distribution Transformers"
+              pageSubtitle="Asset health scores, winding thermal limits, and failure probabilities"
+            >
+              <TransformersPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/assets/:id"
+          element={
+            <AppLayout
+              pageTitle="Asset Diagnostics & Telemetry"
+              pageSubtitle="Detailed transformer sensor history and AI failure prevention recommendations"
+            >
+              <AssetDetailPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/forecast"
+          element={
+            <AppLayout
+              pageTitle="Demand Forecasting Studio"
+              pageSubtitle="XGBoost & Prophet ensemble predicting multi-step electricity load"
+            >
+              <DemandForecastPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/risk"
+          element={
+            <AppLayout
+              pageTitle="Asset Failure Risk Intelligence"
+              pageSubtitle="Supervised Random Forest risk prediction and load-vs-temperature matrix"
+            >
+              <AssetRiskPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/anomalies"
+          element={
+            <AppLayout
+              pageTitle="Energy Anomaly Detection Center"
+              pageSubtitle="Isolation Forest unsupervised outlier engine identifying load abnormalities"
+            >
+              <AnomaliesPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/maintenance"
+          element={
+            <AppLayout
+              pageTitle="Predictive Maintenance Operations"
+              pageSubtitle="Condition-based work orders and oil dielectric testing schedule"
+            >
+              <MaintenancePage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/outages"
+          element={
+            <AppLayout
+              pageTitle="Outage Management & Reliability"
+              pageSubtitle="Active fault tracking, crew restoration dispatch, and IEEE SAIDI/SAIFI analytics"
+            >
+              <OutagesPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/reliability"
+          element={
+            <AppLayout
+              pageTitle="IEEE Grid Reliability Metrics"
+              pageSubtitle="System Average Interruption Duration & Frequency Indices (SAIDI / SAIFI)"
+            >
+              <OutagesPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/simulator"
+          element={
+            <AppLayout
+              pageTitle="Grid Scenario Simulator"
+              pageSubtitle="What-if power flow stress testing across heatwaves, EV spikes, and industrial shifts"
+            >
+              <SimulatorPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/copilot"
+          element={
+            <AppLayout
+              pageTitle="GridSense Copilot AI"
+              pageSubtitle="Natural language reasoning assistant connected to live SCADA streams"
+            >
+              <CopilotPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/analytics"
+          element={
+            <AppLayout
+              pageTitle="Energy Analytics & Load Profiles"
+              pageSubtitle="Sectoral demand stacks, zonal energy delivered, and peak trajectories"
+            >
+              <EnergyAnalyticsPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/sustainability"
+          element={
+            <AppLayout
+              pageTitle="Grid Sustainability & Carbon Offset"
+              pageSubtitle="Transmission loss mitigation and peak shaving carbon avoidance estimation"
+            >
+              <SustainabilityPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <AppLayout
+              pageTitle="Reports & Compliance Export"
+              pageSubtitle="Generate PDF operational audit dossiers and downloadable CSV sheets"
+            >
+              <ReportsPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/admin"
+          element={
+            <AppLayout
+              pageTitle="Admin Console & Security"
+              pageSubtitle="User access control, role permissions, and immutable audit logs"
+            >
+              <AdminPage />
+            </AppLayout>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <AppLayout
+              pageTitle="Platform Settings"
+              pageSubtitle="SCADA polling frequency, visual theme, and alert thresholds"
+            >
+              <SettingsPage />
+            </AppLayout>
+          }
+        />
+
+        {/* Catch-all 404 */}
+        <Route
+          path="*"
+          element={
+            <AppLayout pageTitle="Not Found">
+              <NotFoundPage />
+            </AppLayout>
+          }
+        />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
